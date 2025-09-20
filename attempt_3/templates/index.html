@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CareerBuddy ChatBot</title>
+    <style>
+        body { font-family: Arial, sans-serif; background: #f4f4f4; margin: 0; padding: 0; }
+        /* Floating chat button */
+        .chatbot-fab {
+            position: fixed;
+            bottom: 32px;
+            right: 32px;
+            width: 64px;
+            height: 64px;
+            background: #007bff;
+            border-radius: 50%;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #fff;
+            font-size: 32px;
+            cursor: pointer;
+            z-index: 1000;
+            transition: background 0.2s;
+        }
+        .chatbot-fab:hover {
+            background: #0056b3;
+        }
+        /* Chat window */
+        .chatbot-window {
+            position: fixed;
+            bottom: 110px;
+            right: 32px;
+            width: 350px;
+            max-width: 95vw;
+            background: #fff;
+            border-radius: 12px;
+            box-shadow: 0 4px 24px rgba(0,0,0,0.18);
+            padding: 0;
+            display: none;
+            flex-direction: column;
+            z-index: 1001;
+            animation: chatbot-pop 0.2s;
+        }
+        @keyframes chatbot-pop {
+            from { transform: scale(0.8); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
+        }
+        .chatbot-header {
+            background: #007bff;
+            color: #fff;
+            padding: 14px 18px;
+            border-radius: 12px 12px 0 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .chatbot-header .close {
+            cursor: pointer;
+            font-size: 20px;
+            font-weight: bold;
+        }
+        .chat-log { height: 260px; overflow-y: auto; border: none; border-radius: 0; padding: 12px; background: #fafafa; margin-bottom: 0; }
+        .chat-message { margin-bottom: 12px; }
+        .user { color: #007bff; font-weight: bold; }
+        .bot { color: #28a745; font-weight: bold; }
+        .input-row { display: flex; padding: 12px; border-top: 1px solid #eee; background: #f9f9f9; }
+        input[type="text"] { flex: 1; padding: 8px; border: 1px solid #ccc; border-radius: 4px; }
+        button[type="submit"] { margin-left: 8px; padding: 8px 16px; border: none; background: #007bff; color: #fff; border-radius: 4px; cursor: pointer; }
+        button[type="submit"]:disabled { background: #aaa; }
+        @media (max-width: 500px) {
+            .chatbot-window { width: 98vw; right: 1vw; }
+        }
+    </style>
+</head>
+<body>
+    <!-- Floating Chatbot Button -->
+    <div class="chatbot-fab" id="chatbot-fab" title="Chat with CareerBuddy">
+        <span>💬</span>
+    </div>
+    <!-- Chatbot Window -->
+    <div class="chatbot-window" id="chatbot-window">
+        <div class="chatbot-header">
+            <span>CareerBuddy</span>
+            <span class="close" id="chatbot-close">&times;</span>
+        </div>
+        <div class="chat-log" id="chat-log"></div>
+        <form id="chat-form" class="input-row">
+            <input type="text" id="user-input" placeholder="Type your message..." autocomplete="off" required />
+            <button type="submit">Send</button>
+        </form>
+    </div>
+    <script>
+        const chatbotFab = document.getElementById('chatbot-fab');
+        const chatbotWindow = document.getElementById('chatbot-window');
+        const chatbotClose = document.getElementById('chatbot-close');
+        const chatLog = document.getElementById('chat-log');
+        const chatForm = document.getElementById('chat-form');
+        const userInput = document.getElementById('user-input');
+
+        // Show chat window
+        chatbotFab.addEventListener('click', () => {
+            chatbotWindow.style.display = 'flex';
+            chatbotFab.style.display = 'none';
+            userInput.focus();
+        });
+        // Hide chat window
+        chatbotClose.addEventListener('click', () => {
+            chatbotWindow.style.display = 'none';
+            chatbotFab.style.display = 'flex';
+        });
+
+        function appendMessage(sender, text) {
+            const div = document.createElement('div');
+            div.className = 'chat-message';
+            div.innerHTML = `<span class="${sender}">${sender === 'user' ? 'You' : 'CareerBuddy'}:</span> ${text}`;
+            chatLog.appendChild(div);
+            chatLog.scrollTop = chatLog.scrollHeight;
+        }
+
+        chatForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const message = userInput.value.trim();
+            if (!message) return;
+            appendMessage('user', message);
+            userInput.value = '';
+            appendMessage('bot', '<em>Thinking...</em>');
+            try {
+                const res = await fetch('/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ user_message: message, page_context: {} })
+                });
+                const data = await res.json();
+                chatLog.lastChild.innerHTML = `<span class="bot">CareerBuddy:</span> ${data.reply}`;
+            } catch (err) {
+                chatLog.lastChild.innerHTML = `<span class="bot">CareerBuddy:</span> <span style='color:red'>Error: Could not get response.</span>`;
+            }
+        });
+    </script>
+</body>
+</html>
